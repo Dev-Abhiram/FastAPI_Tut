@@ -1,0 +1,133 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div id="postsContainer">
+    {% for post in posts %}
+    <article class="content-section py-3 px-4 mb-4">
+
+        <div class="d-flex align-items-start gap-4">
+
+            <!-- Simple avatar placeholder -->
+            <img class="rounded-circle flex-shrink-0" src="https://ui-avatars.com/api/?name=User+{{ post.userId }}"
+                width="64" height="64">
+
+            <div class="flex-grow-1">
+
+                <div class="mb-2">
+                    <span class="fw-bold">
+                        User {{ post.userId }}
+                    </span>
+                </div>
+
+                <h2>
+                    {{ post.title }}
+                </h2>
+
+                <p class="text-body-secondary">
+                    {{ post.body }}
+                </p>
+
+            </div>
+        </div>
+
+    </article>
+    {% endfor %}
+</div>
+
+{% if has_more %}
+<div class="text-center mb-4">
+    <button type="button" class="btn btn-outline-primary" id="loadMoreBtn">
+        Load More Posts
+    </button>
+</div>
+{% endif %}
+{% endblock content %}
+
+{% block scripts %}
+<script type="module">
+    import { escapeHtml, formatDate } from '/static/js/utils.js';
+
+    const limit = {{ limit | tojson }};
+    let currentOffset = limit;
+    let hasMore = {{ has_more | tojson }};
+
+    const postsContainer = document.getElementById('postsContainer');
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+
+    let isLoading = false;
+
+    function createPostHTML(post) {
+        return `
+        <article class="content-section py-3 px-4 mb-4">
+            <div class="d-flex align-items-start gap-4">
+
+                <img class="rounded-circle flex-shrink-0"
+                     src="https://ui-avatars.com/api/?name=User+${post.userId}"
+                     width="64"
+                     height="64">
+
+                <div class="flex-grow-1">
+
+                    <div class="mb-2">
+                        <span class="fw-bold">
+                            User ${post.userId}
+                        </span>
+                    </div>
+
+                    <h2>${escapeHtml(post.title)}</h2>
+
+                    <p class="text-body-secondary">
+                        ${escapeHtml(post.body)}
+                    </p>
+
+                </div>
+            </div>
+        </article>
+        `;
+    }
+
+    async function loadMorePosts() {
+        if (isLoading || !loadMoreBtn) return;
+
+        isLoading = true;
+        loadMoreBtn.disabled = true;
+        loadMoreBtn.textContent = 'Loading...';
+
+        try {
+            const response = await fetch(
+                `/api/posts?skip=${currentOffset}&limit=${limit}`
+            );
+
+            const data = await response.json();
+
+            data.forEach(post => {
+                postsContainer.insertAdjacentHTML(
+                    'beforeend',
+                    createPostHTML(post)
+                );
+            });
+
+            currentOffset += data.length;
+
+            if (data.length < limit) {
+                loadMoreBtn.remove();
+                return;
+            }
+
+            loadMoreBtn.textContent = 'Load More Posts';
+            loadMoreBtn.disabled = false;
+
+        } catch (error) {
+            console.error(error);
+            loadMoreBtn.textContent = 'Retry';
+            loadMoreBtn.disabled = false;
+        } finally {
+            isLoading = false;
+        }
+    }
+
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', loadMorePosts);
+    }
+</script>
+{% endblock scripts %}
