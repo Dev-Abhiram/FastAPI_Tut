@@ -6,6 +6,8 @@ from fastapi.responses import JSONResponse
 
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from schemas import PostResponse,PostCreate
+
 app = FastAPI()
 templates=Jinja2Templates(directory="templates")
 app.mount("/static",StaticFiles(directory="static"),name="static")
@@ -17,14 +19,14 @@ posts :list[dict]=[
     "userId": 1,
     "id": 1,
     "title": "sunt aut facere repellat provident occaecati excepturi optio reprehenderit",
-    "body": "quia et suscipit\nsuscipit recusandae consequuntur expedita et cum\nreprehenderit molestiae ut ut quas totam\nnostrum rerum est autem sunt rem eveniet architecto"
+    "content": "quia et suscipit\nsuscipit recusandae consequuntur expedita et cum\nreprehenderit molestiae ut ut quas totam\nnostrum rerum est autem sunt rem eveniet architecto"
   },
   {
       "author":"John",
     "userId": 1,
     "id": 2,
     "title": "qui est esse",
-    "body": "est rerum tempore vitae\nsequi sint nihil reprehenderit dolor beatae ea dolores neque\nfugiat blanditiis voluptate porro vel nihil molestiae ut reiciendis\nqui aperiam non debitis possimus qui neque nisi nulla"
+    "content": "est rerum tempore vitae\nsequi sint nihil reprehenderit dolor beatae ea dolores neque\nfugiat blanditiis voluptate porro vel nihil molestiae ut reiciendis\nqui aperiam non debitis possimus qui neque nisi nulla"
   },
     
 ]
@@ -61,16 +63,34 @@ def post_page(post_id:int,request:Request):
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Post not found")
 
 
-@app.get("/api/posts")
+@app.get("/api/posts",response_model=list[PostResponse])
 def get_posts():
   return posts
 
-@app.get("/api/posts/{post_id}")
+@app.get("/api/posts/{post_id}",response_model=PostResponse)
 def get_post(post_id:int):
     for post in posts:
         if post.get("id","Not Found")==post_id:
             return post
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Post not found")
+
+@app.post("/api/posts",response_model=PostResponse,status_code=status.HTTP_201_CREATED)
+def create_post(post:PostCreate):
+    new_id= max(post["id"] for post in posts) + 1 if posts else 1
+    new_post={
+        "id":new_id,
+        "author":post.author,
+        "title":post.title,
+        "content":post.content,
+        "date_posted":"11-06-2026"
+    }
+    posts.append(new_post)
+    return new_post
+    
+
+
+
+
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -122,22 +142,22 @@ def validation_exception_handler(request:Request,exception:RequestValidationErro
 
 
 #################################################
-@app.get("/login", name="login_page")
+@app.get("/login", name="login_page",include_in_schema=False)
 def login_page(request: Request):
     pass
 
-@app.get("/register", name="register_page")
+@app.get("/register", name="register_page",include_in_schema=False)
 def register_page(request: Request):
     pass
 
-@app.get("/account", name="account_page")
+@app.get("/account", name="account_page",include_in_schema=False)
 def account_page(request: Request):
     pass
 
-@app.get("/users/{user_id}/posts", name="user_posts")
+@app.get("/users/{user_id}/posts", name="user_posts",include_in_schema=False)
 def user_posts(user_id: int):
     pass
 
-@app.get("/user_id", name="user_id")
+@app.get("/user_id", name="user_id",include_in_schema=False)
 def user_id(request: Request):
     pass
